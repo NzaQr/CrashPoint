@@ -1,4 +1,4 @@
-import React, { useCallback, useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import Search from "./Search";
 import LocateCurrent from "./LocateCurrent";
 import {
@@ -34,13 +34,26 @@ const Map = () => {
   const [markers, setMarkers] = useState([]);
   const [selected, setSelected] = useState(null);
 
+  useEffect(() => {
+    const json = localStorage.getItem("marker");
+    const loadedNotes = JSON.parse(json);
+    if (loadedNotes) {
+      setMarkers(loadedNotes);
+    }
+  }, []);
+
+  useEffect(() => {
+    const json = JSON.stringify(markers);
+    localStorage.setItem("marker", json);
+  }, [markers]);
+
   const onMapClick = useCallback((e) => {
     setMarkers((currentMarkers) => [
       ...currentMarkers,
       {
         lat: e.latLng.lat(),
         lng: e.latLng.lng(),
-        time: new Date(),
+        time: new Date().getTime(),
       },
     ]);
   }, []);
@@ -63,6 +76,12 @@ const Map = () => {
   if (loadError) return "Error loading maps";
   if (!isLoaded) return "Loading Maps";
 
+  const removeMarker = (id) => {
+    const updatedNotes = [...markers].filter((marker) => marker.time !== id);
+    setMarkers(updatedNotes);
+    setSelected(null);
+  };
+
   return (
     <div>
       <h1>CrashPoint</h1>
@@ -80,7 +99,6 @@ const Map = () => {
       >
         {markers.map((marker) => (
           <Marker
-            key={marker.time.toISOString()}
             position={{ lat: marker.lat, lng: marker.lng }}
             icon={{
               url: crash,
@@ -104,6 +122,9 @@ const Map = () => {
             <div>
               <h2>Car Crash</h2>
               <p>Occurred {formatRelative(selected.time, new Date())}</p>
+              <button onClick={() => removeMarker(selected.time)}>
+                Delete
+              </button>
             </div>
           </InfoWindow>
         ) : null}
